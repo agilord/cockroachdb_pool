@@ -1,0 +1,18 @@
+name: cockroachdb_pool
+description: CockroachDB connection pool with automatic cluster load balancing.
+version: 1.0.0
+homepage: https://github.com/agilord/cockroachdb_pool
+
+environment:
+  sdk: '>=2.7.0 <3.0.0'
+
+dependencies:
+  http: ^0.12.0
+  meta: ^1.0.0
+  postgres_pool: ^2.0.0
+  retry: ^3.0.0
+
+dev_dependencies:
+  docker_process: ^1.2.0
+  pedantic: ^1.8.0
+  test: ^1.6.0
