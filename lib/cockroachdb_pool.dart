@@ -66,6 +66,9 @@ class CrdbPool implements PgPool {
   set settings(PgPoolSettings value) {
     if (value is CrdbPoolSettings) {
       _settings = value;
+      _nodes.forEach((n) {
+        n._pgPool.settings = _settings;
+      });
     } else {
       _settings.applyFrom(value);
     }
@@ -349,7 +352,8 @@ class CrdbPool implements PgPool {
       if (oldNode != null) {
         oldNode.markWorking();
       } else {
-        _nodes.add(_CrdbNode(nodeId, ep, apiBaseUri, PgPool(ep), _events.sink));
+        _nodes.add(_CrdbNode(nodeId, ep, apiBaseUri,
+            PgPool(ep, settings: _settings), _events.sink));
       }
     }
 
