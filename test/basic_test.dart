@@ -36,7 +36,7 @@ void main() {
       final httpPort = pgPort + 1;
       return await startCockroachDB(
         name: 'crdb_$pgPort',
-        version: 'v19.2.4',
+        version: 'v20.1.4',
         cleanup: true,
         httpPort: httpPort,
         pgPort: pgPort,

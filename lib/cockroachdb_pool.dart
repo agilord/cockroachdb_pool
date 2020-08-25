@@ -314,7 +314,10 @@ class CrdbPool implements PgPool {
             continue;
           }
           final desc = node['desc'] as Map;
-          final address = (desc['address'] as Map)['addressField'] as String;
+          var address = (desc['address'] as Map)['addressField'] as String;
+          if (address.startsWith('[')) {
+            address = address.substring(1).split(']').first;
+          }
           final uri = Uri.parse('pg://$address');
 
           results.add(ep.replace(host: uri.host, port: uri.port));
