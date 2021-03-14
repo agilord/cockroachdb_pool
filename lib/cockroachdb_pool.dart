@@ -6,7 +6,6 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:http/http.dart';
-import 'package:meta/meta.dart';
 import 'package:retry/retry.dart';
 import 'package:postgres_pool/postgres_pool.dart';
 
@@ -47,13 +46,13 @@ class CrdbPool implements PgPool {
   final _random = Random.secure();
   final CrdbApiBaseUriFn _baseUriFn;
   final _endpoints = <PgEndpoint>[];
-  DateTime _lastNodeUpdated;
+  DateTime? _lastNodeUpdated;
   CrdbPoolSettings _settings;
 
   CrdbPool({
-    @required List<PgEndpoint> endpoints,
-    CrdbPoolSettings settings,
-    CrdbApiBaseUriFn baseUriFn,
+    required List<PgEndpoint> endpoints,
+    CrdbPoolSettings? settings,
+    CrdbApiBaseUriFn? baseUriFn,
   })  : _settings = settings ?? CrdbPoolSettings(),
         _baseUriFn = baseUriFn ?? _defaultCrdbApiBaseUrlFn {
     _endpoints.addAll(endpoints);
@@ -87,10 +86,10 @@ class CrdbPool implements PgPool {
   @override
   Future<int> execute(
     String fmtString, {
-    Map<String, dynamic> substitutionValues,
-    int timeoutInSeconds,
-    String sessionId,
-    String traceId,
+    Map<String, dynamic>? substitutionValues,
+    int? timeoutInSeconds,
+    String? sessionId,
+    String? traceId,
   }) {
     return run(
       (c) => c.execute(
@@ -106,11 +105,11 @@ class CrdbPool implements PgPool {
   @override
   Future<PostgreSQLResult> query(
     String fmtString, {
-    Map<String, dynamic> substitutionValues,
-    bool allowReuse = true,
-    int timeoutInSeconds,
-    String sessionId,
-    String traceId,
+    Map<String, dynamic>? substitutionValues,
+    bool? allowReuse = true,
+    int? timeoutInSeconds,
+    String? sessionId,
+    String? traceId,
   }) {
     return run(
       (c) => c.query(
@@ -127,11 +126,11 @@ class CrdbPool implements PgPool {
   @override
   Future<List<Map<String, Map<String, dynamic>>>> mappedResultsQuery(
     String fmtString, {
-    Map<String, dynamic> substitutionValues,
-    bool allowReuse = true,
-    int timeoutInSeconds,
-    String sessionId,
-    String traceId,
+    Map<String, dynamic>? substitutionValues,
+    bool? allowReuse = true,
+    int? timeoutInSeconds,
+    String? sessionId,
+    String? traceId,
   }) {
     return run(
       (c) => c.mappedResultsQuery(
@@ -151,11 +150,11 @@ class CrdbPool implements PgPool {
   @override
   Future<R> run<R>(
     PgSessionFn<R> fn, {
-    RetryOptions retryOptions,
-    FutureOr<R> Function() orElse,
-    FutureOr<bool> Function(Exception) retryIf,
-    String sessionId,
-    String traceId,
+    RetryOptions? retryOptions,
+    FutureOr<R> Function()? orElse,
+    FutureOr<bool> Function(Exception)? retryIf,
+    String? sessionId,
+    String? traceId,
   }) async {
     retryOptions ??= settings.retryOptions;
     try {
@@ -186,11 +185,11 @@ class CrdbPool implements PgPool {
   @override
   Future<R> runTx<R>(
     PgSessionFn<R> fn, {
-    RetryOptions retryOptions,
-    FutureOr<R> Function() orElse,
-    FutureOr<bool> Function(Exception) retryIf,
-    String sessionId,
-    String traceId,
+    RetryOptions? retryOptions,
+    FutureOr<R> Function()? orElse,
+    FutureOr<bool> Function(Exception)? retryIf,
+    String? sessionId,
+    String? traceId,
   }) async {
     retryOptions ??= settings.retryOptions;
     try {
@@ -219,7 +218,7 @@ class CrdbPool implements PgPool {
   }
 
   @override
-  void cancelTransaction({String reason}) {
+  void cancelTransaction({String? reason}) {
     // no-op
   }
 
@@ -232,7 +231,7 @@ class CrdbPool implements PgPool {
     await _events.close();
   }
 
-  _CrdbNode _selectFrom(Iterable<_CrdbNode> items) {
+  _CrdbNode? _selectFrom(Iterable<_CrdbNode> items) {
     final list = items.toList();
     if (list.isEmpty) return null;
     return list[_random.nextInt(list.length)];
@@ -264,16 +263,16 @@ class CrdbPool implements PgPool {
     }
   }
 
-  Completer _nodeUpdateCompleter;
+  Completer? _nodeUpdateCompleter;
   Future _updateNodesIfNeeded() async {
     // wait for pending node update
     while (_nodeUpdateCompleter != null) {
-      await _nodeUpdateCompleter.future;
+      await _nodeUpdateCompleter!.future;
     }
 
     final now = DateTime.now();
     if (_lastNodeUpdated != null &&
-        now.difference(_lastNodeUpdated) < settings.clusterUpdateThreshold) {
+        now.difference(_lastNodeUpdated!) < settings.clusterUpdateThreshold) {
       return;
     }
 
@@ -289,7 +288,7 @@ class CrdbPool implements PgPool {
     } finally {
       final c = _nodeUpdateCompleter;
       _nodeUpdateCompleter = null;
-      c.complete();
+      c!.complete();
     }
   }
 
@@ -298,7 +297,6 @@ class CrdbPool implements PgPool {
     for (final ep in shuffled) {
       try {
         final baseUri = await _baseUriFn(ep);
-        if (baseUri == null) continue;
         final uri = Uri.parse(baseUri).replace(path: '/_status/nodes');
         final rs = await get(uri);
         final body = json.decode(rs.body) as Map;
@@ -342,7 +340,6 @@ class CrdbPool implements PgPool {
 
     for (final ep in _endpoints) {
       final baseUri = await _baseUriFn(ep);
-      if (baseUri == null) continue;
       final apiBaseUri = Uri.parse(baseUri);
       final uri = apiBaseUri.replace(path: '/_status/nodes/local');
       final rs = await get(uri);
@@ -350,8 +347,8 @@ class CrdbPool implements PgPool {
       final desc = body['desc'] as Map;
       final nodeId = desc['nodeId'] as int;
 
-      final oldNode =
-          _nodes.firstWhere((a) => a.nodeId == nodeId, orElse: () => null);
+      final oldNodes = _nodes.where((a) => a.nodeId == nodeId).take(1).toList();
+      final oldNode = oldNodes.isEmpty ? null : oldNodes.single;
       if (oldNode != null) {
         oldNode.markWorking();
       } else {
@@ -381,10 +378,10 @@ class CrdbPoolEvent extends PgPoolEvent {
   final Uri apiBaseUri;
 
   CrdbPoolEvent({
-    @required this.nodeId,
-    @required this.pgEndpoint,
-    @required this.apiBaseUri,
-    @required PgPoolEvent event,
+    required this.nodeId,
+    required this.pgEndpoint,
+    required this.apiBaseUri,
+    required PgPoolEvent event,
   }) : super.fromPgPoolEvent(event);
 }
 
@@ -394,10 +391,10 @@ class CrdbNodeStatus extends PgPoolStatus {
   final Uri apiBaseUri;
 
   CrdbNodeStatus({
-    @required this.nodeId,
-    @required this.pgEndpoint,
-    @required this.apiBaseUri,
-    @required PgPoolStatus poolStatus,
+    required this.nodeId,
+    required this.pgEndpoint,
+    required this.apiBaseUri,
+    required PgPoolStatus poolStatus,
   }) : super.fromPgPoolStatus(poolStatus);
 }
 
@@ -405,7 +402,7 @@ class CrdbPoolStatus implements PgPoolStatus {
   final List<CrdbNodeStatus> nodes;
 
   CrdbPoolStatus({
-    this.nodes,
+    required this.nodes,
   });
 
   @override
@@ -427,9 +424,10 @@ class _CrdbNode {
   final Uri apiBaseUri;
   final PgPool _pgPool;
   int active = 0;
-  StreamSubscription _eventsSubs;
+  // ignore: cancel_subscriptions
+  StreamSubscription? _eventsSubs;
   int _badScore = 0;
-  DateTime _badSince;
+  DateTime? _badSince;
 
   _CrdbNode(this.nodeId, this.pgEndpoint, this.apiBaseUri, this._pgPool,
       Sink<CrdbPoolEvent> sink) {
@@ -445,7 +443,7 @@ class _CrdbNode {
 
   Future<void> close() async {
     await _pgPool.close();
-    await _eventsSubs.cancel();
+    await _eventsSubs!.cancel();
   }
 
   CrdbNodeStatus status() => CrdbNodeStatus(
@@ -483,5 +481,5 @@ class _CrdbNode {
 
   bool get shouldRemove =>
       _badSince != null &&
-      DateTime.now().difference(_badSince) > Duration(hours: 1);
+      DateTime.now().difference(_badSince!) > Duration(hours: 1);
 }

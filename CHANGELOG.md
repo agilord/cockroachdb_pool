@@ -1,3 +1,7 @@
+## 1.1.0-null-safety.2
+
+- Migrated to null safety.
+
 ## 1.0.2
 
 - Fix parsing issue of `address` field with updated format.

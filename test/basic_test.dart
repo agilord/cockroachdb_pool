@@ -8,11 +8,11 @@ import 'package:cockroachdb_pool/cockroachdb_pool.dart';
 void main() {
   group('basic tests for small cluster', () {
     final initPort = 11200;
-    String hostIp;
-    CrdbPool pool;
-    DockerProcess _dp1;
-    DockerProcess _dp2;
-    DockerProcess _dp3;
+    late String hostIp;
+    late CrdbPool pool;
+    late DockerProcess _dp1;
+    late DockerProcess _dp2;
+    late DockerProcess _dp3;
 
     setUpAll(() async {
       final list = await NetworkInterface.list();
@@ -26,8 +26,8 @@ void main() {
         print([e, st]);
       }
       for (final p in [_dp1, _dp2, _dp3]) {
-        await p?.stop();
-        await p?.kill();
+        await p.stop();
+        await p.kill();
       }
     });
 
