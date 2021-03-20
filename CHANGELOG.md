@@ -1,3 +1,7 @@
+## 1.1.0
+
+- Final null-safe release.
+
 ## 1.1.0-null-safety.2
 
 - Migrated to null safety.
