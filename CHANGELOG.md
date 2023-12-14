@@ -1,3 +1,10 @@
+## 1.1.0+1
+
+**Discontinued**
+
+`package:postgres` from `^3.0.0` supports connection pooling as part of the core
+library. Development and advanced pooling support will be migrated to that package.
+
 ## 1.1.0
 
 - Final null-safe release.
